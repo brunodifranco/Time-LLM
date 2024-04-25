@@ -264,7 +264,14 @@ for ii in range(args.itr):
             accelerator.print('Updating learning rate to {}'.format(scheduler.get_last_lr()[0]))
 
 accelerator.wait_for_everyone()
-if accelerator.is_local_main_process:
-    path = './checkpoints'  # unique checkpoint saving path
-    del_files(path)  # delete checkpoint files
-    accelerator.print('success delete checkpoints')
+# if accelerator.is_local_main_process:
+#     path = "./checkpoints"  # unique checkpoint saving path
+
+# if accelerator is not None:
+#     model = accelerator.unwrap_model(model)
+#     torch.save(model.state_dict(), path + "/" + "checkpoints")
+# else:
+#     torch.save(model.state_dict(), path + "/" + "checkpoints")
+
+    # del_files(path)  # delete checkpoint files
+    # accelerator.print('success delete checkpoints')

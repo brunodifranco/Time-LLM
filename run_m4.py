@@ -305,7 +305,7 @@ for ii in range(args.itr):
             accelerator.print('After all 6 tasks are finished, you can calculate the averaged performance')
 
 accelerator.wait_for_everyone()
-if accelerator.is_local_main_process:
-    path = './checkpoints'  # unique checkpoint saving path
-    del_files(path)  # delete checkpoint files
-    accelerator.print('success delete checkpoints')
+# if accelerator.is_local_main_process:
+#     path = './checkpoints'  # unique checkpoint saving path
+#     del_files(path)  # delete checkpoint files
+#     accelerator.print('success delete checkpoints')
