@@ -12,3 +12,5 @@ transformers==4.31.0
 deepspeed==0.14.0
 sentencepiece==0.2.0
 mpi4py-mpich==3.1.5
+openpyxl==3.1.2
+lxml==5.2.2
