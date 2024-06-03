@@ -7,7 +7,8 @@ from sklearn.preprocessing import MinMaxScaler
 from neuralforecast import NeuralForecast
 from neuralforecast.models import TimeLLM
 from neuralforecast.utils import augment_calendar_df
-from transformers import GPT2Config, GPT2Model, GPT2Tokenizer
+from transformers import LlamaConfig, LlamaModel, LlamaTokenizer
+
 
 torch.set_float32_matmul_precision("medium")
 
@@ -15,9 +16,10 @@ torch.set_float32_matmul_precision("medium")
 # https://www.snirh.gov.br/hidrotelemetria/serieHistorica.aspx
 # https://app.powerbi.com/view?r=eyJrIjoiYWNhZDg0MDgtNWI5Ni00NjU3LTgyNDctYjgyOTE5MDFiMWM0IiwidCI6IjE1ZGNkOTA5LThkYzAtNDBlOS1hMWU1LWNlY2IwNTNjZGQxYSJ9
 
+TOKEN = ""
 HORIZON = 96
-HIDDEN_LAYERS = 60
-EPOCHS = 1
+HIDDEN_LAYERS = 18
+EPOCHS = 1000
 BATCH_SIZE = 8
 WINDOWS_BATCH_SIZE = 2
 PROMPT_PREFIX = """
@@ -32,8 +34,6 @@ class WaterLevelTrain:
 
     Attributes
     ----------
-    input_path : Path
-        Path to the input data.
     output_path : Path
         Path to save the output data.
     variables : List
@@ -42,15 +42,15 @@ class WaterLevelTrain:
         Scaler for the target variable.
     lag_scaler : MinMaxScaler
         Scaler for the lagged variable.
-    gpt2_config : GPT2Config
-        Configuration for the GPT-2 model.
-    gpt2 : GPT2Model
-        Pre-trained GPT-2 model.
-    gpt2_tokenizer : GPT2Tokenizer
-        Tokenizer for the GPT-2 model.
+    llm_config : LlamaConfig
+        Configuration for the LLM model.
+    llm_model : LlamaModel
+        Pre-trained LLM model.
+    llm_tokenizer : LlamaTokenizer
+        Tokenizer for the LLM model.
     """
 
-    def __init__(self, input_path: Path, output_path: Path, variables: List):
+    def __init__(self, output_path: Path, variables: List):
         """
         Initializes the WaterLevelTrain class with specified parameters.
 
@@ -63,16 +63,19 @@ class WaterLevelTrain:
         variables : List
             List of variable names for the dataset.
         """
-        self.input_path = input_path
         self.output_path = output_path
         self.variables = variables
         self.y_scaler = None
         self.lag_scaler = None
-        self.gpt2_config = GPT2Config.from_pretrained("openai-community/gpt2")
-        self.gpt2 = GPT2Model.from_pretrained(
-            "openai-community/gpt2", config=self.gpt2_config
+        self.llm_config = LlamaConfig.from_pretrained(
+            "meta-llama/Llama-2-7b-hf", use_auth_token=TOKEN
         )
-        self.gpt2_tokenizer = GPT2Tokenizer.from_pretrained("openai-community/gpt2")
+        self.llm_model = LlamaModel.from_pretrained(
+            "meta-llama/Llama-2-7b-hf", use_auth_token=TOKEN, config=self.llm_config
+        )
+        self.llm_tokenizer = LlamaTokenizer.from_pretrained(
+            "meta-llama/Llama-2-7b-hf", use_auth_token=TOKEN
+        )
 
     def load_data(self) -> DataFrame:
         """
@@ -83,7 +86,9 @@ class WaterLevelTrain:
         DataFrame
             Preprocessed data.
         """
-        df = pd.read_csv(f"{self.input_path}/elevacao_guaiba.csv")
+        df = pd.read_csv(
+            f"elevacao_guaiba.csv"
+        )  # you should run the script in the /Time-LLM/neuralforecast_timellm/guiaba folder
         df["ds"] = pd.to_datetime(df["datetime"])
         df = df.drop("datetime", axis=1)
         df = df.sort_values(by="ds", ascending=True).reset_index(drop=True)
@@ -165,9 +170,9 @@ class WaterLevelTrain:
         time_llm = TimeLLM(
             h=HORIZON,
             input_size=HORIZON * 4,
-            llm=self.gpt2,
-            llm_config=self.gpt2_config,
-            llm_tokenizer=self.gpt2_tokenizer,
+            llm=self.llm_model,
+            llm_config=self.llm_config,
+            llm_tokenizer=self.llm_tokenizer,
             prompt_prefix=PROMPT_PREFIX,
             llm_num_hidden_layers=HIDDEN_LAYERS,
             max_steps=EPOCHS,
@@ -277,10 +282,7 @@ class WaterLevelTrain:
 
 if __name__ == "__main__":
     pipeline = WaterLevelTrain(
-        input_path=Path("/home/bruno/mestrado/Time-LLM/neuralforecast_timellm/guiaba"),
-        output_path=Path(
-            "/home/bruno/mestrado/Time-LLM/neuralforecast_timellm/guiaba/gpt2_test"
-        ),
+        output_path=Path("guaiaba_llama_test/"),
         variables=["ds", "unique_id", "y"],
     )
     pipeline.run()
